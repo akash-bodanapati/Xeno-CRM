@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { supabase } from '../services/supabase';
 import type { ApiResponse, Customer } from '../types/index';
-
+import { applySegmentFilter } from '../utils/segmentFilter'; 
+import type { FilterRules } from '../types/index';
 const router = Router();
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
@@ -104,16 +105,25 @@ router.get('/:id', async (req, res, next) => {
       res.status(404).json({ success: false, error: 'Customer not found' });
       return;
     }
+    const { data: allSegments } = await supabase
+  .from('segments')
+  .select('*');
 
+const dynamicSegments = (allSegments ?? []).filter((segment) => {
+  const matched = applySegmentFilter(
+    [data as Customer],
+    segment.filter_rules as FilterRules
+  );
+
+  return matched.length > 0;
+});
     const { segment_members, ...customer } = data as Record<string, unknown> & {
       segment_members?: { segments: unknown }[];
       communications?: unknown[];
       orders?: unknown[];
     };
 
-    const segments = (segment_members ?? [])
-      .map((row) => row.segments)
-      .filter(Boolean);
+    const segments = dynamicSegments;
 
     res.json({
       success: true,
