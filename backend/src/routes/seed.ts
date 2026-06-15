@@ -831,10 +831,6 @@ export const seedOrders: SeedOrder[] = [
  */
 router.post('/', async (_req, res, next) => {
   try {
-    if (process.env.NODE_ENV === 'production') {
-      res.status(403).json({ success: false, error: 'Not allowed in production' });
-      return;
-    }
 
     await clearAllData();
 
