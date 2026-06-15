@@ -50,7 +50,25 @@ router.post('/', async (req, res, next) => {
       .single();
 
     if (error) throw error;
+    // Update customer aggregates
+const { data: existingCustomer } = await supabase
+  .from('customers')
+  .select('total_spent,total_orders')
+  .eq('id', customer_id)
+  .single();
 
+if (existingCustomer) {
+  await supabase
+    .from('customers')
+    .update({
+      total_spent:
+        Number(existingCustomer.total_spent || 0) + amount,
+      total_orders:
+        Number(existingCustomer.total_orders || 0) + 1,
+      last_order_date: newOrder.ordered_at,
+    })
+    .eq('id', customer_id);
+}
     // Campaign conversions attribution tracking
     try {
       const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
